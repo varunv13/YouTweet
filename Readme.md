@@ -1,6 +1,6 @@
 ## Introduction
 
-V-tube is a YouTube + Twitter backend project! This project seamlessly integrates the core functionalities of YouTube with the dynamic tweet feature of Twitter. Below, you'll find comprehensive information about this project in the provided documentation.
+YouTweet is a YouTube + Twitter backend project! This project seamlessly integrates the core functionalities of YouTube with the dynamic tweet feature of Twitter. Below, you'll find comprehensive information about this project in the provided documentation.
 
 ## Important Link
 | Model              | [click here ](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj)         |
