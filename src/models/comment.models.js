@@ -1,25 +1,24 @@
 import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
-import { required } from "nodemon/lib/config";
 
 const commentSchema = new Schema(
-    {
-        content: {
-            type: String,
-            required: true
-        },
-        video: {
-            types: mongoose.Schema.Types.ObjectId,
-            ref: "Video"
-        },
-        owner: {
-            types: mongoose.Schema.Types.ObjectId,
-            ref: "User"
-        }
+  {
+    content: {
+      type: String,
+      required: true,
     },
-    {
-        timestamps: true
-    }
+    video: {
+      type: Schema.Types.ObjectId,
+      ref: "Video",
+    },
+    owner: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+  },
+  {
+    timestamps: true,
+  },
 );
 
 commentSchema.plugin(mongooseAggregatePaginate);
