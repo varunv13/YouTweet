@@ -1,6 +1,4 @@
-import { type } from "express/lib/response";
 import mongoose, { Schema } from "mongoose";
-import { required } from "nodemon/lib/config";
 
 const tweetSchema = new Schema(
   {
