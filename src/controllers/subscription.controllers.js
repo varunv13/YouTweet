@@ -64,20 +64,29 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
   const channel = await User.findById({ _id: channelId });
   if (!channel) throw new ApiError(400, "Channel does not exist!!");
 
-  const subscribers = await Subscription
-  .find({ channel: channelId })
-  .populate(
-    "subscriber",
-    "username avatar",
-  )
-  .exec();
+  // I am the content creator and a channel owner as well as a user, I want to know who have subscribed to me
+  // for that i will go the the subscription data base and first find myself there,
+  // after finding myself, i will get more details of the subscribers who have subscribed to me
+  // by using populate()
+  const subscribers = await Subscription.find({ channel: channelId })
+    .populate("subscriber", "username avatar")
+    .exec();
+
+  const allSubscribers = subscribers.map((subscriber) => ({
+    _id: subscriber._id,
+    subscriber: {
+      _id: subscriber.subscriber._id,
+      username: subscriber.subscriber.username,
+      avatar: subscriber.subscriber.avatar,
+    },
+  }));
 
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        subscribers,
+        allSubscribers,
         "Fetched all the subscribers of the channel sucessfully",
       ),
     );
@@ -85,7 +94,33 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
-  const { subscriberId } = req.params;
+  const { channelId } = req.params;
+
+  if (!isValidObjectId(channelId))
+    throw new ApiError(400, "Channel ID is in-valid");
+
+  const channel = await User.findById(channelId);
+  if (!channel) throw new ApiError(400, "Channel does not exist!!");
+
+  // I am a user and a subscriber, so when i want to see whom i have subscribed to,
+  // then i will go to the subscription database and find myself (here, channel._id)
+  // and after finding myself, i'll get the additional details of the channel whom i have subscribed to
+  // using populate()
+  const subscribedTo = await Subscription.find({ subscriber: channel._id })
+    .populate("channel", "fullName avatar")
+    .exec();
+
+  const subscribedChannels = subscribedTo.map((subscribe) => subscribe.channel);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        subscribedChannels,
+        "Feteched all the channels user has subscribed successfully !!",
+      ),
+    );
 });
 
 export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };
