@@ -18,6 +18,8 @@ const createTweet = asyncHandler(async (req, res) => {
     owner: req.user._id,
   });
 
+  await User.findByIdAndUpdate(req.user._id, { $push: { tweets: tweet._id } });
+
   if (!tweet)
     throw new ApiError(500, "Something went wrong while creating a tweet");
 
