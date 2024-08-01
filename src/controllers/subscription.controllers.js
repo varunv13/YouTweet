@@ -29,8 +29,13 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, unsubscribe, "User unsubscribed to the channel successfully"));
-
+      .json(
+        new ApiResponse(
+          200,
+          unsubscribe,
+          "User unsubscribed to the channel successfully",
+        ),
+      );
   } else {
     const subscribe = await Subscription.create({
       channel: channelId,
@@ -39,15 +44,43 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, subscribe, "User subscribed to the channel successfully"));
+      .json(
+        new ApiResponse(
+          200,
+          subscribe,
+          "User subscribed to the channel successfully",
+        ),
+      );
   }
-
 });
 
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
 
+  if (!isValidObjectId(channelId))
+    throw new ApiError(400, "Channel ID is invalid");
+
+  const channel = await User.findById({ _id: channelId });
+  if (!channel) throw new ApiError(400, "Channel does not exist!!");
+
+  const subscribers = await Subscription
+  .find({ channel: channelId })
+  .populate(
+    "subscriber",
+    "username avatar",
+  )
+  .exec();
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        subscribers,
+        "Fetched all the subscribers of the channel sucessfully",
+      ),
+    );
 });
 
 // controller to return channel list to which user has subscribed
