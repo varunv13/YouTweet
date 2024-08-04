@@ -93,7 +93,79 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const { title, description } = req.body;
+  const thumbnailPath = req.file?.path; // path because at first i've to remove the previous thumbnail and while updating the new thumbnail, it requires path
+  const { id } = req.user;
+
   //TODO: update video details like title, description, thumbnail
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "In-valid Video Id!!");
+  }
+
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(400, "Video does not exist!!");
+  }
+
+  if (video.owner.toString() !== id) {
+    throw new ApiError(400, "You're not authorized to make any changes");
+  }
+
+  if (
+    !thumbnailPath &&
+    (!title || title?.trim === "") &&
+    (!description || description?.trim() === "")
+  ) {
+    throw new ApiError(400, "Please enter the field you want to update");
+  }
+
+  if (thumbnailPath) {
+    const thumbnailDeleted = await deleteOnCloudinary(
+      video.thumbnail.public_id,
+      "image",
+    );
+    if (!thumbnailDeleted) throw new ApiError(400, "Something went wrong!!");
+
+    const thumbnailUpdate = await uploadOnCloudinary(thumbnailPath);
+    const updatedThumbail = await Video.findByIdAndUpdate(
+      videoId,
+      {
+        $set: {
+          thumbnail: {
+            public_id: thumbnailUpdate.public_id,
+            Url: thumbnailUpdate.url,
+          },
+        },
+      },
+      { new: true },
+    );
+  }
+  if (title) {
+    const titleUpdate = await Video.findByIdAndUpdate(
+      videoId,
+      {
+        $set: { title },
+      },
+      { new: true },
+    );
+    if (!titleUpdate) throw new ApiError(400, "Something went wrong!!");
+  }
+  if (description) {
+    const descriptionUpdate = await Video.findByIdAndUpdate(
+      videoId,
+      {
+        $set: { description },
+      },
+      { new: true },
+    );
+
+    if (!descriptionUpdate) throw new ApiError(400, "Something went wrong!!");
+  }
+
+  const updatedVideo = await Video.findById(videoId);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo, "Video updated successfully"));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -101,27 +173,34 @@ const deleteVideo = asyncHandler(async (req, res) => {
   const { id } = req.user;
   //TODO: delete video
 
-  if(!isValidObjectId(videoId)) {
+  if (!isValidObjectId(videoId)) {
     throw new ApiError(200, "Not a valid Video Id!!");
   }
 
   const video = await Video.findById({ _id: videoId });
-  if(!video) throw new ApiError(400, "Video does not exist");
+  if (!video) throw new ApiError(400, "Video does not exist");
 
-  if(video.owner.toString() !== id) {
+  if (video.owner.toString() !== id) {
     throw new ApiError(400, "You're not authorized to perform this action");
   }
 
-  const videoDeleted = await deleteOnCloudinary(video.videoFile.public_id, "video");
-  if(!videoDeleted) throw new ApiError(400, "Something went wrong!!");
+  const videoDeleted = await deleteOnCloudinary(
+    video.videoFile.public_id,
+    "video",
+  );
+  if (!videoDeleted) throw new ApiError(400, "Something went wrong!!");
 
-  const thumbnailDeleted = await deleteOnCloudinary(video.thumbnail.public_id, "image");  
-  if(!thumbnailDeleted) throw new ApiError(400, "Something went wrong!!");
+  const thumbnailDeleted = await deleteOnCloudinary(
+    video.thumbnail.public_id,
+    "image",
+  );
+  if (!thumbnailDeleted) throw new ApiError(400, "Something went wrong!!");
 
   await Video.findByIdAndDelete(video);
 
-  return res.status(200).json(new ApiResponse(200, video, "Video deleted sucessfully"));
-  
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video deleted sucessfully"));
 });
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
