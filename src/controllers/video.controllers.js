@@ -4,7 +4,7 @@ import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -53,11 +53,11 @@ const publishAVideo = asyncHandler(async (req, res) => {
   const thumbnailUploaded = await uploadOnCloudinary(thumbnailLocalPath);
 
   const video = await Video.create({
-    videoUploaded: {
+    videoFile: {
       public_id: videoUploaded.public_id,
       url: videoUploaded.url,
     },
-    thumbnailUploaded: {
+    thumbnail: {
       public_id: thumbnailUploaded.public_id,
       Url: thumbnailUploaded.url,
     },
@@ -98,7 +98,30 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const { id } = req.user;
   //TODO: delete video
+
+  if(!isValidObjectId(videoId)) {
+    throw new ApiError(200, "Not a valid Video Id!!");
+  }
+
+  const video = await Video.findById({ _id: videoId });
+  if(!video) throw new ApiError(400, "Video does not exist");
+
+  if(video.owner.toString() !== id) {
+    throw new ApiError(400, "You're not authorized to perform this action");
+  }
+
+  const videoDeleted = await deleteOnCloudinary(video.videoFile.public_id, "video");
+  if(!videoDeleted) throw new ApiError(400, "Something went wrong!!");
+
+  const thumbnailDeleted = await deleteOnCloudinary(video.thumbnail.public_id, "image");  
+  if(!thumbnailDeleted) throw new ApiError(400, "Something went wrong!!");
+
+  await Video.findByIdAndDelete(video);
+
+  return res.status(200).json(new ApiResponse(200, video, "Video deleted sucessfully"));
+  
 });
 
 const togglePublishStatus = asyncHandler(async (req, res) => {

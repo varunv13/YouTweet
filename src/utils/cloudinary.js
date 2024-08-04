@@ -24,5 +24,32 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
+const deleteOnCloudinary = async (publicId, assetType) => {
+  try {
+    if (!publicId) return null;
+    let resourceType;
+    switch (assetType) {
+      case "image":
+        resourceType = "image";
+        break;
+      case "video":
+        resourceType = "video";
+        break;
+      default:
+        throw new Error("Invalid asset type");
+    }
 
-export { uploadOnCloudinary };
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+      invalidate: true,
+    });
+
+    // console.log("Delete Result:", result);
+    return result;
+  } catch (error) {
+    // console.log('Error deleting asset from Cloudinary:', error);
+    return null;
+  }
+};
+
+export { uploadOnCloudinary, deleteOnCloudinary };
