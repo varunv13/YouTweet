@@ -48,9 +48,9 @@ const publishAVideo = asyncHandler(async (req, res) => {
   if (!thumbnailLocalPath) {
     throw new ApiError(400, "Thumbnail file required!!");
   }
-  
+
   const videoUploaded = await uploadOnCloudinary(videoLocalPath);
-  const thumbnailUploaded = await uploadOnCloudinary(thumbnailLocalPath);  
+  const thumbnailUploaded = await uploadOnCloudinary(thumbnailLocalPath);
 
   const video = await Video.create({
     videoUploaded: {
@@ -79,7 +79,16 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: get video by id
+
+  if (!isValidObjectId(videoId))
+    throw new ApiError(400, "Video Id is not valid!!");
+
+  const video = await Video.findById({ _id: videoId });
+  if (!video) throw new ApiError(400, "Video doesn't exist!!");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video feteched successfully"));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
