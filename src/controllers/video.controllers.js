@@ -7,8 +7,69 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   //TODO: get all videos based on query, sort, pagination
+
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    sortType = "desc",
+    userId,
+    title,
+  } = req.query;
+
+  // Parse page and limit as integers
+  const pageNumber = parseInt(page, 10);
+  const limitNumber = parseInt(limit, 10);
+
+  // Build the sort object
+  const validSortFields = ["createdAt", "title", "views", "likes"];
+  if (!validSortFields.includes(sortBy)) {
+    throw new ApiError(400, `Invalid sortBy field: ${sortBy}`);
+  }
+  const queryObject = {};
+  queryObject[sortBy] = sortType === "asc" ? 1 : -1;
+
+  try {
+    const filter = {};
+    if (userId) {
+      if (!isValidObjectId(userId)) {
+        throw new ApiError(400, "Invalid User Id");
+      }
+      filter.owner = userId;
+    }
+
+    if (title) {
+      filter.title = { $regex: title, $options: "i" };
+    }
+
+    const videos = await Video.find(filter)
+      .sort(queryObject)
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
+
+    if (videos.length === 0) {
+      return res
+        .status(200)
+        .json(new ApiResponse(200, videos, "No video found"));
+    }
+
+    const totalVideos = await Video.countDocuments();
+    const totalPages = Math.ceil(totalVideos / limit);
+    const remainingPages = totalPages - page;
+
+    const pagination = {
+      currentPage: page,
+      totalPages: totalPages,
+      remainingPages: remainingPages,
+    };
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, videos, "Videos fetched Successfully!", pagination));
+  } catch (error) {
+    throw new ApiError(500, "An error occurred while fetching videos");
+  }
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -61,8 +122,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
       public_id: thumbnailUploaded.public_id,
       Url: thumbnailUploaded.url,
     },
-    title,
-    description,
+    title: title.trim(),
+    description: description.trim(),
     duration: videoUploaded?.duration,
     isPublished: true,
     owner,
