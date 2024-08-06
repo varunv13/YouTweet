@@ -43,7 +43,9 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
   const owner = await Playlist.findOne({ owner: userId });
   if (!owner) throw new ApiError(400, "User does not exist");
 
-  const playlists = await Playlist.find({ owner: userId });
+  const playlists = await Playlist.find({ owner: userId })
+    .populate("videos", "thumbnail")
+    .exec();
   if (!playlists.length) throw new ApiError(400, "No playlist found");
 
   return res
@@ -86,7 +88,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
   const video = await Video.findById(videoId);
   if (!video) throw new ApiError(400, "Video does not exist.");
 
-  if(playList.videos.includes(videoId)) {
+  if (playList.videos.includes(videoId)) {
     throw new ApiError(400, "Video already exist with-in the playlist");
   }
 
@@ -126,7 +128,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   const video = await Video.findById(videoId);
   if (!video) throw new ApiError(404, "Video does not exist.");
 
-  if(!playList.videos.includes(videoId)) {
+  if (!playList.videos.includes(videoId)) {
     throw new ApiError(400, "Video does not exist with-in the playlist");
   }
 
