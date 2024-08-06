@@ -86,7 +86,7 @@ const deletePlaylist = asyncHandler(async (req, res) => {
   if (!isValidObjectId(playlistId))
     throw new ApiError(400, "Playlist ID is not valid");
 
-  const playList = await Playlist.findById( playlistId );
+  const playList = await Playlist.findById(playlistId);
   if (!playList) throw new ApiError(400, "Playlist does not exist");
 
   const deletedPlaylist = await Playlist.findOneAndDelete(playList);
@@ -103,6 +103,35 @@ const updatePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   const { name, description } = req.body;
   //TODO: update playlist
+  if (!isValidObjectId(playlistId))
+    throw new ApiError(400, "Playlist Id is invalid!!");
+
+  const playList = await Playlist.findById(playlistId);
+  if (!playList) throw new ApiError(400, "Playlist does not exist!!");
+
+  if (name?.trim() === "" && description?.trim() === "")
+    throw new ApiError(400, "Enter the field which you want to update");
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    {
+      name: name?.trim() || playList.name,
+      description: description?.trim() || playList.description,
+    },
+    { new: true },
+  );
+
+  if (!updatedPlaylist)
+    throw new ApiError(
+      400,
+      "Something went wrong while updating the playlist.",
+    );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedPlaylist, "Playlist updated successfully."),
+    );
 });
 
 export {
