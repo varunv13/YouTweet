@@ -6,8 +6,32 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const createPlaylist = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
+  const id = req.user._id;
 
   //TODO: create playlist
+  if ([name, description].some((field) => field?.trim() === "")) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  const existedPlaylist = await Playlist.findOne({
+    $or: [{ name }, { description }],
+  });
+
+  if (existedPlaylist)
+    throw new ApiError(400, "Playlist with this name already exist");
+
+  const newPlayList = await Playlist.create({
+    name,
+    description,
+    owner: id,
+  });
+
+  if (!newPlayList)
+    throw new ApiError(400, "Playlist can not be created successfully");
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, newPlayList, "Playlist created successfully!!"));
 });
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
