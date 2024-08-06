@@ -58,6 +58,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
 const getPlaylistById = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
+
   //TODO: get playlist by id
   if (!isValidObjectId(playlistId))
     throw new ApiError(400, "Playlist ID is not valid");
@@ -81,7 +82,21 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 
 const deletePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
-  // TODO: delete playlist
+
+  if (!isValidObjectId(playlistId))
+    throw new ApiError(400, "Playlist ID is not valid");
+
+  const playList = await Playlist.findById( playlistId );
+  if (!playList) throw new ApiError(400, "Playlist does not exist");
+
+  const deletedPlaylist = await Playlist.findOneAndDelete(playList);
+  if (!deletedPlaylist) throw new ApiError(400, "Something went wrong");
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, deletedPlaylist, "Playlist deleted successfully."),
+    );
 });
 
 const updatePlaylist = asyncHandler(async (req, res) => {
