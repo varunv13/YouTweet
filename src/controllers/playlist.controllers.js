@@ -21,8 +21,8 @@ const createPlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Playlist with this name already exist");
 
   const newPlayList = await Playlist.create({
-    name,
-    description,
+    name: name.trim(),
+    description: description.trim(),
     owner: id,
   });
 
@@ -41,7 +41,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
   const owner = await Playlist.findOne({ owner: userId });
   if (!owner) throw new ApiError(400, "User does not exist");
-  
+
   const playlists = await Playlist.find({ owner: userId });
   if (!playlists.length) throw new ApiError(400, "No playlist found");
 
@@ -59,6 +59,15 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 const getPlaylistById = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   //TODO: get playlist by id
+  if (!isValidObjectId(playlistId))
+    throw new ApiError(400, "Playlist ID is not valid");
+
+  const playList = await Playlist.findById(playlistId);
+  if (!playList) throw new ApiError(400, "Playlist does not exist!!");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, playList, "Playlist feteched successfully."));
 });
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
