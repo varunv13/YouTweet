@@ -86,6 +86,10 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
   const video = await Video.findById(videoId);
   if (!video) throw new ApiError(400, "Video does not exist.");
 
+  if(playList.videos.includes(videoId)) {
+    throw new ApiError(400, "Video already exist with-in the playlist");
+  }
+
   const videoAdded = await Playlist.findByIdAndUpdate(
     playlistId,
     { $push: { videos: videoId } },
@@ -112,6 +116,41 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
   // TODO: remove video from playlist
+  if (!isValidObjectId(playlistId))
+    throw new ApiError(400, "Playlist ID not valid");
+  if (!isValidObjectId(videoId)) throw new ApiError(400, "Video ID not valid");
+
+  const playList = await Playlist.findById(playlistId);
+  if (!playList) throw new ApiError(404, "PlayList does not exist.");
+
+  const video = await Video.findById(videoId);
+  if (!video) throw new ApiError(404, "Video does not exist.");
+
+  if(!playList.videos.includes(videoId)) {
+    throw new ApiError(400, "Video does not exist with-in the playlist");
+  }
+
+  const videoRemoved = await Playlist.findByIdAndUpdate(
+    playlistId,
+    { $pull: { videos: videoId } },
+    { new: true },
+  );
+
+  if (!videoRemoved)
+    throw new ApiError(
+      400,
+      "Something went wrong while removing the video from the playlist.",
+    );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        videoId,
+        "Video removed from the playlist successfully.",
+      ),
+    );
 });
 
 const deletePlaylist = asyncHandler(async (req, res) => {
