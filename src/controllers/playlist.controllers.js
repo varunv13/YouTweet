@@ -76,6 +76,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
+  const { id } = req.user._id;
 
   if (!isValidObjectId(playlistId))
     throw new ApiError(400, "Playlist Id does not exist.");
@@ -87,6 +88,10 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 
   const video = await Video.findById(videoId);
   if (!video) throw new ApiError(400, "Video does not exist.");
+
+  if (playList.owner.id.toString() !== id.toString()) {
+    throw new ApiError(400, "You're not authorized to make any changes");
+  }
 
   if (playList.videos.includes(videoId)) {
     throw new ApiError(400, "Video already exist with-in the playlist");
@@ -117,6 +122,8 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
+  const { id } = req.user._id;
+
   // TODO: remove video from playlist
   if (!isValidObjectId(playlistId))
     throw new ApiError(400, "Playlist ID not valid");
@@ -127,6 +134,10 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 
   const video = await Video.findById(videoId);
   if (!video) throw new ApiError(404, "Video does not exist.");
+
+  if (playList.owner.id.toString() !== id.toString()) {
+    throw new ApiError(400, "You're not authorized to make any changes");
+  }
 
   if (!playList.videos.includes(videoId)) {
     throw new ApiError(400, "Video does not exist with-in the playlist");
@@ -141,6 +152,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   if (!videoRemoved)
     throw new ApiError(
       400,
+      videoRemoved,
       "Something went wrong while removing the video from the playlist.",
     );
 

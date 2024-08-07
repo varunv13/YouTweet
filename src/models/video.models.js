@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
-
+// TODO: will add a property "comment" which will be array, such that it will store comments of the same and different users
 const videoSchema = new Schema(
   {
     videoFile: {
