@@ -27,6 +27,8 @@ const toggleSubscription = asyncHandler(async (req, res) => {
       channel: channelId,
     });
 
+    if(!unsubscribe) throw new ApiError(400, "Something went wrong!!");
+
     return res
       .status(200)
       .json(
