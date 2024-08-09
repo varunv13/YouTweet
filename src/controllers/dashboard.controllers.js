@@ -8,6 +8,37 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getChannelStats = asyncHandler(async (req, res) => {
   // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
+  const { _id } = req.user;
+  if (!isValidObjectId(_id)) throw new ApiError(400, "Invalid User Id");
+
+  //total number of videos
+  const totalVideos = await Video.countDocuments({ owner: _id });
+
+  //total number of subscribers
+  const totalSubscribers = await Subscription.countDocuments({ channel: _id });
+
+  //total number of likes
+  // Fetch total number of likes across all videos
+  const totalLikes = await Like.countDocuments({
+    video: { $in: await Video.find({ owner: _id }).distinct("_id") },
+  });
+
+  //total number of views across all videos
+  const totalViews = await Video.aggregate([
+    { $match: { owner: _id } },
+    { $group: { _id: null, totalViews: { $sum: "$views" } } },
+  ]);
+
+  const stats = {
+    totalVideos,
+    totalSubscribers,
+    totalLikes,
+    totalViews: totalViews[0]?.totalViews || 0,
+  };
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, stats, "Channel stats fetched successfully!!"));
 });
 
 const getChannelVideos = asyncHandler(async (req, res) => {
@@ -71,7 +102,7 @@ const getChannelVideos = asyncHandler(async (req, res) => {
             $project: {
               _id: 0,
               userDetails: {
-                $arrayElemAt: ["$userDetails", 0], //
+                $arrayElemAt: ["$userDetails", 0],
               },
             },
           },
