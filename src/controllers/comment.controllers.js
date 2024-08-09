@@ -23,7 +23,8 @@ const getVideoComments = asyncHandler(async (req, res) => {
   const queryObject = {};
   queryObject[sortBy] = sortType === "asc" ? 1 : -1;
 
-  const comments = await Comment.find()
+  const comments = await Comment.find({ video: videoId })
+    .populate("owner", "id avatar")
     .sort(queryObject)
     .skip((pageNumber - 1) * limitNumber)
     .limit(limitNumber);

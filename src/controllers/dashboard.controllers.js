@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { Video } from "../models/video.models.js";
 import { Subscription } from "../models/subscriptions.models.js";
 import { Like } from "../models/like.models.js";
@@ -11,7 +11,115 @@ const getChannelStats = asyncHandler(async (req, res) => {
 });
 
 const getChannelVideos = asyncHandler(async (req, res) => {
-  // TODO: Get all the videos uploaded by the channel
+  const { _id } = req.user;
+  if (!isValidObjectId(_id)) throw new ApiError(400, "Invalid User Id!!");
+
+  const videos = await Video.aggregate([
+    {
+      $match: {
+        owner: _id, //filter videos to include only those uploaded by the user
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "video",
+        as: "likes",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "likedBy",
+              foreignField: "_id",
+              as: "userDetails",
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              userName: "$userDetails.fullName",
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        likesCount: { $size: "$likes" },
+        likedByUserNames: {
+          $map: { input: "$likes", as: "like", in: "$$like.userName" },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "video",
+        as: "comments",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "userDetails",
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              userDetails: {
+                $arrayElemAt: ["$userDetails", 0], //
+              },
+            },
+          },
+          {
+            $project: {
+              userName: "$userDetails.fullName",
+              avatar: "$userDetails.avatar",
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        commentCounts: { $size: "$comments" },
+        commentedByUsers: {
+          $map: {
+            input: "$comments",
+            as: "comment",
+            in: {
+              userName: "$$comment.userName",
+              avatar: "$$comment.avatar",
+            },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        likes: 0, // Exclude the likes array
+        comments: 0, // Exclude the comments array
+      },
+    },
+  ]);
+
+  if (videos.length === 0) {
+    return res.status(200).json(new ApiResponse(200, videos, "No video found"));
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        videos,
+        "Videos uploaded by channel fetched successfully!!",
+      ),
+    );
 });
 
 export { getChannelStats, getChannelVideos };
