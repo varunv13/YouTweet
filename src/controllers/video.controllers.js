@@ -138,6 +138,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, video, "Video Uploaded succesfully"));
 });
 
+// Todo: search video by keyword
+
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
